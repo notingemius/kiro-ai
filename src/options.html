@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Kiro AI — настройки</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>Kiro AI</h1>
+      <p class="sub">Помощник для живых ответов в переписке.</p>
+    </header>
+
+    <section class="card">
+      <h2>OpenRouter API-ключ</h2>
+      <p class="hint">
+        Получи бесплатный ключ на
+        <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>
+        (регистрация через Google, карта не нужна).
+      </p>
+      <label>
+        <span>API Key</span>
+        <input id="apiKey" type="password" placeholder="sk-or-v1-...">
+      </label>
+      <button id="toggleKey" type="button" class="ghost">Показать ключ</button>
+    </section>
+
+    <section class="card">
+      <h2>Модель</h2>
+      <p class="hint">Все варианты ниже — бесплатные (<code>:free</code> на OpenRouter).</p>
+      <label>
+        <span>Модель</span>
+        <select id="model">
+          <optgroup label="Рекомендую">
+            <option value="openai/gpt-oss-120b:free">OpenAI gpt-oss-120b (free) — умная, дефолт</option>
+            <option value="openai/gpt-oss-20b:free">OpenAI gpt-oss-20b (free) — быстрая</option>
+            <option value="nvidia/nemotron-nano-9b-v2:free">NVIDIA Nemotron Nano 9B v2 (free) — шустрая</option>
+          </optgroup>
+          <optgroup label="Альтернативы">
+            <option value="deepseek/deepseek-chat-v3.1:free">DeepSeek V3.1 (free)</option>
+            <option value="z-ai/glm-4.5-air:free">GLM 4.5 Air (free)</option>
+            <option value="google/gemma-3-27b-it:free">Google Gemma 3 27B (free)</option>
+            <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (free)</option>
+            <option value="qwen/qwen3-235b-a22b:free">Qwen3 235B (free)</option>
+          </optgroup>
+          <optgroup label="Свой slug">
+            <option value="__custom__">Ввести slug вручную…</option>
+          </optgroup>
+        </select>
+      </label>
+      <label id="customModelWrap" hidden>
+        <span>Кастомный slug</span>
+        <input id="customModel" type="text" placeholder="provider/model-name:free">
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>Дополнительно</h2>
+      <label>
+        <span>Temperature <small>(0 — строго, 1 — свободно)</small></span>
+        <input id="temperature" type="number" min="0" max="2" step="0.05" value="0.85">
+      </label>
+      <label>
+        <span>Свой системный промпт <small>(если пусто — используется встроенный)</small></span>
+        <textarea id="customPrompt" rows="8" placeholder="Оставь пустым для стандартного поведения."></textarea>
+      </label>
+    </section>
+
+    <div class="actions">
+      <button id="save" type="button" class="primary">Сохранить</button>
+      <span id="status" class="status"></span>
+    </div>
+
+    <footer>
+      <p>
+        Как пользоваться: выдели текст на любой странице —
+        справа сверху появится кнопка <b>K</b>. Клик → панель с темой, планом и шаблоном ответа
+        (<i>реакция · эмоция · кусочек себя · вопрос глубже</i>).
+        Копируй шаблон, дописывай своё, отправляй.
+      </p>
+    </footer>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>
