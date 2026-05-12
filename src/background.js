@@ -3,7 +3,7 @@
 
 const DEFAULT_SETTINGS = {
   apiKey: '',
-  model: 'openai/gpt-oss-120b:free',
+  model: 'deepseek/deepseek-chat-v3.1:free',
   customPrompt: '',
   temperature: 0.85,
 };
@@ -30,7 +30,8 @@ const SYSTEM_PROMPT = `Ты — Kiro AI, помощник для живых че
 - Тон — как близкий друг: спокойно, внимательно, без пафоса.
 - "template" должен читаться как одно цельное сообщение, а не как 4 отдельных куска.
 - Не используй смайлики, если собеседник сам их не ставил.
-- Будь конкретным, избегай общих слов.`;
+- Будь конкретным, избегай общих слов.
+- Отвечай быстро, не размышляй долго.`;
 
 async function getSettings() {
   const stored = await chrome.storage.sync.get(DEFAULT_SETTINGS);
@@ -50,6 +51,10 @@ async function callOpenRouter(selectedText, settings) {
     model: settings.model,
     temperature: Number(settings.temperature) || 0.85,
     response_format: { type: 'json_object' },
+    // Disable reasoning for models that support it — we want fast replies,
+    // not long chain-of-thought. OpenRouter ignores this param for models
+    // that don't support it.
+    reasoning: { enabled: false },
     messages: [
       { role: 'system', content: sysPrompt },
       { role: 'user', content: `Выделенный текст (на него нужно ответить):\n\n"""${selectedText}"""` },

@@ -142,15 +142,27 @@
     err.textContent = msg;
   };
 
+  let thinkTimer = null;
+  const stopThinkTimer = () => { if (thinkTimer) { clearInterval(thinkTimer); thinkTimer = null; } };
+
   const requestSuggestion = (text) => {
     const panel = $(PANEL_ID);
+    stopThinkTimer();
     if (panel) {
-      panel.querySelector('.kiro-ai-status').hidden = false;
-      panel.querySelector('.kiro-ai-status').textContent = 'Думаю…';
+      const statusEl = panel.querySelector('.kiro-ai-status');
+      statusEl.hidden = false;
       panel.querySelector('.kiro-ai-body').hidden = true;
       panel.querySelector('.kiro-ai-error').hidden = true;
+      const startedAt = Date.now();
+      const tick = () => {
+        const sec = Math.floor((Date.now() - startedAt) / 1000);
+        statusEl.textContent = `Думаю… ${sec}с`;
+      };
+      tick();
+      thinkTimer = setInterval(tick, 250);
     }
     chrome.runtime.sendMessage({ type: 'KIRO_AI_SUGGEST', text }, (resp) => {
+      stopThinkTimer();
       if (chrome.runtime.lastError) {
         renderError('Ошибка расширения: ' + chrome.runtime.lastError.message);
         return;

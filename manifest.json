@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Kiro AI — Reply Helper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Выдели текст на любой странице — Kiro AI предложит тему, план и шаблон ответа: реакция + эмоция + кусочек себя + вопрос глубже.",
   "permissions": ["storage", "contextMenus", "activeTab", "scripting"],
   "host_permissions": ["<all_urls>"],

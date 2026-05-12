@@ -1,6 +1,6 @@
 const DEFAULTS = {
   apiKey: '',
-  model: 'openai/gpt-oss-120b:free',
+  model: 'deepseek/deepseek-chat-v3.1:free',
   customPrompt: '',
   temperature: 0.85,
 };

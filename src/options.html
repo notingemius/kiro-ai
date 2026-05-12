@@ -28,21 +28,24 @@
 
     <section class="card">
       <h2>Модель</h2>
-      <p class="hint">Все варианты ниже — бесплатные (<code>:free</code> на OpenRouter).</p>
+      <p class="hint">
+        Все варианты ниже — бесплатные (<code>:free</code> на OpenRouter).
+        Быстрые модели отвечают за 3–6 секунд, reasoning-модели — 15–25 сек.
+      </p>
       <label>
         <span>Модель</span>
         <select id="model">
-          <optgroup label="Рекомендую">
-            <option value="openai/gpt-oss-120b:free">OpenAI gpt-oss-120b (free) — умная, дефолт</option>
-            <option value="openai/gpt-oss-20b:free">OpenAI gpt-oss-20b (free) — быстрая</option>
-            <option value="nvidia/nemotron-nano-9b-v2:free">NVIDIA Nemotron Nano 9B v2 (free) — шустрая</option>
-          </optgroup>
-          <optgroup label="Альтернативы">
-            <option value="deepseek/deepseek-chat-v3.1:free">DeepSeek V3.1 (free)</option>
+          <optgroup label="Быстрые (для живого чата)">
+            <option value="deepseek/deepseek-chat-v3.1:free">DeepSeek V3.1 (free) — быстрая, дефолт</option>
             <option value="z-ai/glm-4.5-air:free">GLM 4.5 Air (free)</option>
-            <option value="google/gemma-3-27b-it:free">Google Gemma 3 27B (free)</option>
             <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (free)</option>
+            <option value="google/gemma-3-27b-it:free">Google Gemma 3 27B (free)</option>
             <option value="qwen/qwen3-235b-a22b:free">Qwen3 235B (free)</option>
+          </optgroup>
+          <optgroup label="Умные, но медленные (reasoning)">
+            <option value="openai/gpt-oss-120b:free">OpenAI gpt-oss-120b (free)</option>
+            <option value="openai/gpt-oss-20b:free">OpenAI gpt-oss-20b (free)</option>
+            <option value="nvidia/nemotron-nano-9b-v2:free">NVIDIA Nemotron Nano 9B v2 (free)</option>
           </optgroup>
           <optgroup label="Свой slug">
             <option value="__custom__">Ввести slug вручную…</option>
@@ -75,7 +78,7 @@
     <footer>
       <p>
         Как пользоваться: выдели текст на любой странице —
-        справа сверху появится кнопка <b>K</b>. Клик → панель с темой, планом и шаблоном ответа
+        справа появится кнопка <b>K</b>. Клик → панель с темой, планом и шаблоном ответа
         (<i>реакция · эмоция · кусочек себя · вопрос глубже</i>).
         Копируй шаблон, дописывай своё, отправляй.
       </p>
