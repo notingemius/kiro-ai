@@ -4,6 +4,9 @@
 (() => {
   const BTN_ID = 'kiro-ai-trigger';
   const PANEL_ID = 'kiro-ai-panel';
+  const LOG = (...args) => console.log('[Kiro AI]', ...args);
+
+  LOG('content script loaded on', location.href);
 
   let currentSelectionText = '';
 
@@ -22,21 +25,23 @@
 
   const showTrigger = (rect) => {
     removeEl(BTN_ID);
+    LOG('showTrigger at', rect);
     const btn = document.createElement('div');
     btn.id = BTN_ID;
     btn.className = 'kiro-ai-trigger';
     btn.title = 'Kiro AI — подсказать ответ';
     btn.textContent = 'K';
 
-    const top = window.scrollY + rect.top - 36;
-    const left = window.scrollX + rect.right - 28;
-    btn.style.top = `${Math.max(top, window.scrollY + 4)}px`;
-    btn.style.left = `${left}px`;
+    // Use fixed positioning so it works on any layout.
+    const top = rect.top - 34;
+    const left = rect.right + 4;
+    btn.style.top = `${Math.max(top, 4)}px`;
+    btn.style.left = `${Math.max(left, 4)}px`;
 
     btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); });
     btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openPanel(); });
 
-    document.body.appendChild(btn);
+    (document.body || document.documentElement).appendChild(btn);
   };
 
   const openPanel = () => {
@@ -163,10 +168,11 @@
     setTimeout(() => {
       const info = getSelectionInfo();
       if (!info) { removeEl(BTN_ID); currentSelectionText = ''; return; }
+      LOG('selection captured:', info.text.slice(0, 80));
       currentSelectionText = info.text;
       showTrigger(info.rect);
-    }, 0);
-  });
+    }, 10);
+  }, true);
 
   document.addEventListener('mousedown', (e) => {
     if (e.target.closest && e.target.closest(`#${BTN_ID}`)) return;
