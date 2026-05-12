@@ -9,17 +9,25 @@
   <main class="wrap">
     <header>
       <h1>Бенчмарк моделей</h1>
-      <p class="sub">Прогоняет твой ключ по всем моделям и замеряет реальное время ответа.</p>
+      <p class="sub">Прогоняет твой ключ по всем бесплатным моделям и замеряет реальное время ответа.</p>
     </header>
+
+    <section class="card">
+      <h2>Выбор моделей</h2>
+      <p class="hint">Список берётся live с OpenRouter — всегда актуальный, устаревшие slug'и не попадают.</p>
+      <div id="modelPicker">
+        <p class="hint">Загружаю список…</p>
+      </div>
+    </section>
 
     <section class="card">
       <h2>Настройки теста</h2>
       <label>
-        <span>Тестовое сообщение <small>(на нём будут прогоняться все модели)</small></span>
+        <span>Тестовое сообщение <small>(на нём будут прогоняться модели)</small></span>
         <textarea id="testPrompt" rows="3">Расскажи мне про свой день. Что случилось интересного, о чём думаешь сейчас?</textarea>
       </label>
       <label>
-        <span>Количество прогонов на модель <small>(больше = точнее, но дольше)</small></span>
+        <span>Количество прогонов на модель <small>(больше = точнее)</small></span>
         <input id="runsPerModel" type="number" min="1" max="5" step="1" value="2">
       </label>
       <label>

@@ -29,23 +29,23 @@
     <section class="card">
       <h2>Модель</h2>
       <p class="hint">
-        Все варианты ниже — бесплатные (<code>:free</code> на OpenRouter).
-        Быстрые модели отвечают за 3–6 секунд, reasoning-модели — 15–25 сек.
+        Если список моделей устарел или не работает — используй
+        <a href="bench.html">Тест скорости моделей →</a>: он подтягивает актуальный список живых
+        моделей прямо с OpenRouter и позволяет выбрать любую из них.
       </p>
       <label>
         <span>Модель</span>
         <select id="model">
           <optgroup label="Быстрые (для живого чата)">
-            <option value="deepseek/deepseek-chat-v3.1:free">DeepSeek V3.1 (free) — быстрая, дефолт</option>
-            <option value="z-ai/glm-4.5-air:free">GLM 4.5 Air (free)</option>
+            <option value="z-ai/glm-4.5-air:free">GLM 4.5 Air (free) — дефолт, ~2-3с</option>
             <option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (free)</option>
-            <option value="google/gemma-3-27b-it:free">Google Gemma 3 27B (free)</option>
-            <option value="qwen/qwen3-235b-a22b:free">Qwen3 235B (free)</option>
+            <option value="deepseek/deepseek-chat-v3-0324:free">DeepSeek V3 0324 (free)</option>
           </optgroup>
-          <optgroup label="Умные, но медленные (reasoning)">
+          <optgroup label="Reasoning (обязательное)">
             <option value="openai/gpt-oss-120b:free">OpenAI gpt-oss-120b (free)</option>
             <option value="openai/gpt-oss-20b:free">OpenAI gpt-oss-20b (free)</option>
             <option value="nvidia/nemotron-nano-9b-v2:free">NVIDIA Nemotron Nano 9B v2 (free)</option>
+            <option value="deepseek/deepseek-r1:free">DeepSeek R1 (free)</option>
           </optgroup>
           <optgroup label="Свой slug">
             <option value="__custom__">Ввести slug вручную…</option>

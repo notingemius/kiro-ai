@@ -1,16 +1,6 @@
 // Kiro AI — benchmark page.
-// Pings all free OpenRouter models with the user's API key and measures latency.
-
-const MODELS = [
-  { slug: 'deepseek/deepseek-chat-v3.1:free', name: 'DeepSeek V3.1', kind: 'fast' },
-  { slug: 'z-ai/glm-4.5-air:free', name: 'GLM 4.5 Air', kind: 'fast' },
-  { slug: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B', kind: 'fast' },
-  { slug: 'google/gemma-3-27b-it:free', name: 'Gemma 3 27B', kind: 'fast' },
-  { slug: 'qwen/qwen3-235b-a22b:free', name: 'Qwen3 235B', kind: 'fast' },
-  { slug: 'openai/gpt-oss-120b:free', name: 'gpt-oss-120b', kind: 'reasoning' },
-  { slug: 'openai/gpt-oss-20b:free', name: 'gpt-oss-20b', kind: 'reasoning' },
-  { slug: 'nvidia/nemotron-nano-9b-v2:free', name: 'Nemotron Nano 9B', kind: 'reasoning' },
-];
+// Fetches the live list of free text models from OpenRouter and pings each
+// one with the user's API key, measuring latency.
 
 const $ = (id) => document.getElementById(id);
 const logEl = $('log');
@@ -18,7 +8,8 @@ const statusEl = $('status');
 
 let running = false;
 let aborter = null;
-let results = []; // { slug, name, kind, durations:[ms], successes, failures, error? }
+let results = []; // { slug, name, durations:[ms], successes, failures }
+let availableModels = []; // from /api/v1/models
 
 // ---------- helpers ----------
 function log(line) {
@@ -32,61 +23,179 @@ function fmtMs(ms) {
   return (ms / 1000).toFixed(2) + 'с';
 }
 
-function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
-function min(arr) { return arr.length ? Math.min(...arr) : null; }
-function max(arr) { return arr.length ? Math.max(...arr) : null; }
+const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+const min = (arr) => (arr.length ? Math.min(...arr) : null);
+const max = (arr) => (arr.length ? Math.max(...arr) : null);
 
 async function getApiKey() {
   const s = await chrome.storage.sync.get({ apiKey: '' });
   return (s.apiKey || '').trim();
 }
 
-// ---------- one call ----------
-async function callModel(slug, prompt, apiKey, timeoutSec, signal) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutSec * 1000);
-  // If outer aborter fires, also cancel us
-  signal.addEventListener('abort', () => controller.abort(), { once: true });
+// ---------- model discovery ----------
+async function fetchFreeModels() {
+  log('Загружаю список актуальных моделей с OpenRouter…');
+  const res = await fetch('https://openrouter.ai/api/v1/models', { cache: 'no-cache' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const body = await res.json();
+  const models = body.data || body;
 
-  const body = {
-    model: slug,
-    temperature: 0.7,
-    max_tokens: 200,
-    reasoning: { enabled: false },
-    messages: [
-      { role: 'system', content: 'Отвечай коротко и живо, 2-3 предложения.' },
-      { role: 'user', content: prompt },
-    ],
+  // Keep only free text models.
+  const isFree = (m) => {
+    const p = m.pricing || {};
+    const prompt = parseFloat(p.prompt || '0');
+    const completion = parseFloat(p.completion || '0');
+    return prompt === 0 && completion === 0;
+  };
+  const isText = (m) => {
+    const mods = m.architecture?.output_modalities;
+    if (Array.isArray(mods)) return mods.includes('text');
+    if (typeof mods === 'string') return mods.includes('text');
+    return true; // if unknown, keep
+  };
+  const filtered = models.filter(isFree).filter(isText);
+  filtered.sort((a, b) => (a.id || '').localeCompare(b.id || ''));
+  availableModels = filtered;
+  log(`Нашёл ${filtered.length} бесплатных моделей.`);
+  return filtered;
+}
+
+function renderModelPicker() {
+  const wrap = $('modelPicker');
+  wrap.innerHTML = '';
+
+  if (!availableModels.length) {
+    wrap.innerHTML = '<p class="hint">Не удалось загрузить список моделей.</p>';
+    return;
+  }
+
+  // Curated recommended set — updated based on recent real-world availability.
+  const curated = new Set([
+    'z-ai/glm-4.5-air:free',
+    'openai/gpt-oss-120b:free',
+    'openai/gpt-oss-20b:free',
+    'nvidia/nemotron-nano-9b-v2:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'deepseek/deepseek-chat-v3-0324:free',
+    'deepseek/deepseek-r1:free',
+  ]);
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'picker-toolbar';
+  toolbar.innerHTML = `
+    <button type="button" data-action="recommended" class="chip">Рекомендованные</button>
+    <button type="button" data-action="all" class="chip">Все</button>
+    <button type="button" data-action="none" class="chip">Снять все</button>
+    <span class="picker-counter" id="pickerCounter"></span>
+  `;
+  wrap.appendChild(toolbar);
+
+  const list = document.createElement('div');
+  list.className = 'picker-list';
+  availableModels.forEach((m) => {
+    const row = document.createElement('label');
+    row.className = 'picker-row';
+    const ctxK = m.context_length ? `${Math.round(m.context_length / 1000)}K` : '';
+    const isCurated = curated.has(m.id);
+    row.innerHTML = `
+      <input type="checkbox" value="${m.id}" ${isCurated ? 'checked' : ''}>
+      <span class="picker-name">${m.name || m.id}</span>
+      <span class="picker-slug">${m.id}</span>
+      <span class="picker-ctx">${ctxK}</span>
+    `;
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+
+  updatePickerCounter();
+  list.addEventListener('change', updatePickerCounter);
+  toolbar.addEventListener('click', (e) => {
+    const action = e.target.getAttribute?.('data-action');
+    if (!action) return;
+    const checks = list.querySelectorAll('input[type="checkbox"]');
+    checks.forEach((ch) => {
+      if (action === 'all') ch.checked = true;
+      else if (action === 'none') ch.checked = false;
+      else if (action === 'recommended') ch.checked = curated.has(ch.value);
+    });
+    updatePickerCounter();
+  });
+}
+
+function updatePickerCounter() {
+  const checked = document.querySelectorAll('#modelPicker input[type="checkbox"]:checked').length;
+  const total = document.querySelectorAll('#modelPicker input[type="checkbox"]').length;
+  const el = $('pickerCounter');
+  if (el) el.textContent = `выбрано ${checked} из ${total}`;
+}
+
+function getSelectedModels() {
+  const checks = document.querySelectorAll('#modelPicker input[type="checkbox"]:checked');
+  const byId = Object.fromEntries(availableModels.map((m) => [m.id, m]));
+  return Array.from(checks).map((ch) => byId[ch.value]).filter(Boolean);
+}
+
+// ---------- one call ----------
+/**
+ * Call the model once. Strategy:
+ *   1. Try WITHOUT any `reasoning` parameter.
+ *   2. If the provider returns "Reasoning is mandatory" (gpt-oss family),
+ *      retry with `reasoning: { enabled: true, effort: 'low' }`.
+ */
+async function callModel(slug, prompt, apiKey, timeoutSec, signal) {
+  const doFetch = async (reasoningParam) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort('timeout'), timeoutSec * 1000);
+    signal.addEventListener('abort', () => controller.abort('user'), { once: true });
+
+    const body = {
+      model: slug,
+      temperature: 0.7,
+      max_tokens: 200,
+      messages: [
+        { role: 'system', content: 'Отвечай коротко и живо, 2-3 предложения.' },
+        { role: 'user', content: prompt },
+      ],
+    };
+    if (reasoningParam) body.reasoning = reasoningParam;
+
+    const started = performance.now();
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://github.com/notingemius/kiro-ai',
+          'X-Title': 'Kiro AI Bench',
+        },
+        body: JSON.stringify(body),
+      });
+      const elapsed = performance.now() - started;
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        return { ok: false, ms: elapsed, status: res.status, errText };
+      }
+      const data = await res.json();
+      const content = data?.choices?.[0]?.message?.content || '';
+      return { ok: true, ms: elapsed, sample: content.slice(0, 80) };
+    } catch (e) {
+      const elapsed = performance.now() - started;
+      if (e.name === 'AbortError') return { ok: false, ms: elapsed, error: 'timeout' };
+      return { ok: false, ms: elapsed, error: e.message || String(e) };
+    } finally {
+      clearTimeout(timer);
+    }
   };
 
-  const started = performance.now();
-  try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://github.com/notingemius/kiro-ai',
-        'X-Title': 'Kiro AI Bench',
-      },
-      body: JSON.stringify(body),
-    });
-    const elapsed = performance.now() - started;
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      return { ok: false, ms: elapsed, error: `HTTP ${res.status}: ${errText.slice(0, 120)}` };
-    }
-    const data = await res.json();
-    const content = data?.choices?.[0]?.message?.content || '';
-    return { ok: true, ms: elapsed, sample: content.slice(0, 80) };
-  } catch (e) {
-    const elapsed = performance.now() - started;
-    if (e.name === 'AbortError') return { ok: false, ms: elapsed, error: 'timeout / abort' };
-    return { ok: false, ms: elapsed, error: e.message || String(e) };
-  } finally {
-    clearTimeout(timer);
+  let r = await doFetch(null);
+  if (!r.ok && r.status === 400 && /Reasoning is mandatory/i.test(r.errText || '')) {
+    r = await doFetch({ enabled: true, effort: 'low' });
   }
+  if (r.ok) return r;
+  const errMsg = r.error || `HTTP ${r.status}: ${(r.errText || '').slice(0, 120)}`;
+  return { ok: false, ms: r.ms, error: errMsg };
 }
 
 // ---------- rendering ----------
@@ -95,7 +204,7 @@ function renderResults(sorted) {
   tbody.innerHTML = '';
   sorted.forEach((r, i) => {
     const tr = document.createElement('tr');
-    if (i === 0) tr.classList.add('winner');
+    if (i === 0 && r.durations.length > 0) tr.classList.add('winner');
     const a = avg(r.durations);
     const mn = min(r.durations);
     const mx = max(r.durations);
@@ -105,9 +214,8 @@ function renderResults(sorted) {
     tr.innerHTML = `
       <td>${i + 1}</td>
       <td>
-        <div class="m-name">${r.name} ${i === 0 ? '🏆' : ''}</div>
+        <div class="m-name">${r.name} ${i === 0 && r.durations.length > 0 ? '🏆' : ''}</div>
         <div class="m-slug">${r.slug}</div>
-        <div class="m-kind ${r.kind}">${r.kind === 'fast' ? 'быстрая' : 'reasoning'}</div>
       </td>
       <td class="num">${fmtMs(a)}</td>
       <td class="num">${fmtMs(mn)}</td>
@@ -130,14 +238,10 @@ function renderResults(sorted) {
 }
 
 function sortedResults() {
-  // only models with at least one success
-  const scored = results.map((r) => {
-    const durs = r.durations;
-    return {
-      ...r,
-      sortKey: durs.length ? avg(durs) : Number.POSITIVE_INFINITY,
-    };
-  });
+  const scored = results.map((r) => ({
+    ...r,
+    sortKey: r.durations.length ? avg(r.durations) : Number.POSITIVE_INFINITY,
+  }));
   scored.sort((a, b) => a.sortKey - b.sortKey);
   return scored;
 }
@@ -151,6 +255,13 @@ async function runBench() {
   }
   $('keyWarning').hidden = true;
 
+  const selected = getSelectedModels();
+  if (!selected.length) {
+    statusEl.textContent = 'Выбери хотя бы одну модель.';
+    statusEl.classList.add('error');
+    return;
+  }
+
   const prompt = $('testPrompt').value.trim() || 'Привет, как дела?';
   const runs = Math.max(1, Math.min(5, parseInt($('runsPerModel').value) || 2));
   const timeoutSec = Math.max(5, Math.min(120, parseInt($('timeout').value) || 30));
@@ -162,12 +273,18 @@ async function runBench() {
   $('applyFastest').disabled = true;
   $('resultsCard').hidden = false;
   logEl.textContent = '';
-  results = MODELS.map((m) => ({ ...m, durations: [], successes: 0, failures: 0 }));
+  results = selected.map((m) => ({
+    slug: m.id,
+    name: m.name || m.id,
+    durations: [],
+    successes: 0,
+    failures: 0,
+  }));
 
-  const total = MODELS.length * runs;
+  const total = results.length * runs;
   let done = 0;
 
-  log(`Старт: ${MODELS.length} моделей × ${runs} прогонов = ${total} запросов`);
+  log(`Старт: ${results.length} моделей × ${runs} прогонов = ${total} запросов`);
   log(`Промпт: "${prompt}"`);
 
   for (const r of results) {
@@ -218,6 +335,7 @@ async function applyFastest() {
   setTimeout(() => (statusEl.textContent = ''), 2500);
 }
 
+// ---------- bindings ----------
 $('runBench').addEventListener('click', runBench);
 $('stopBench').addEventListener('click', () => {
   running = false;
@@ -226,8 +344,15 @@ $('stopBench').addEventListener('click', () => {
 });
 $('applyFastest').addEventListener('click', applyFastest);
 
-// Show key warning early if no key
+// ---------- init ----------
 (async () => {
   const k = await getApiKey();
   if (!k) $('keyWarning').hidden = false;
+  try {
+    await fetchFreeModels();
+    renderModelPicker();
+  } catch (e) {
+    log('Ошибка загрузки моделей: ' + (e.message || e));
+    $('modelPicker').innerHTML = '<p class="hint" style="color:#ff8aa3">Не удалось загрузить список моделей с OpenRouter.</p>';
+  }
 })();

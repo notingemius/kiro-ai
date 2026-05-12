@@ -1,6 +1,6 @@
 const DEFAULTS = {
   apiKey: '',
-  model: 'deepseek/deepseek-chat-v3.1:free',
+  model: 'z-ai/glm-4.5-air:free',
   customPrompt: '',
   temperature: 0.85,
 };

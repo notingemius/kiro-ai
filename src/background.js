@@ -3,7 +3,7 @@
 
 const DEFAULT_SETTINGS = {
   apiKey: '',
-  model: 'deepseek/deepseek-chat-v3.1:free',
+  model: 'z-ai/glm-4.5-air:free',
   customPrompt: '',
   temperature: 0.85,
 };
@@ -38,6 +38,11 @@ async function getSettings() {
   return { ...DEFAULT_SETTINGS, ...stored };
 }
 
+/**
+ * Call OpenRouter. Don't send `reasoning` param by default (some endpoints
+ * like gpt-oss require reasoning enabled). If we get
+ * "Reasoning is mandatory" 400, retry with low-effort reasoning.
+ */
 async function callOpenRouter(selectedText, settings) {
   if (!settings.apiKey) {
     throw new Error(
@@ -47,30 +52,39 @@ async function callOpenRouter(selectedText, settings) {
 
   const sysPrompt = settings.customPrompt?.trim() ? settings.customPrompt : SYSTEM_PROMPT;
 
-  const body = {
-    model: settings.model,
-    temperature: Number(settings.temperature) || 0.85,
-    response_format: { type: 'json_object' },
-    // Disable reasoning for models that support it — we want fast replies,
-    // not long chain-of-thought. OpenRouter ignores this param for models
-    // that don't support it.
-    reasoning: { enabled: false },
-    messages: [
-      { role: 'system', content: sysPrompt },
-      { role: 'user', content: `Выделенный текст (на него нужно ответить):\n\n"""${selectedText}"""` },
-    ],
+  const buildBody = (reasoningParam) => {
+    const body = {
+      model: settings.model,
+      temperature: Number(settings.temperature) || 0.85,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: sysPrompt },
+        { role: 'user', content: `Выделенный текст (на него нужно ответить):\n\n"""${selectedText}"""` },
+      ],
+    };
+    if (reasoningParam) body.reasoning = reasoningParam;
+    return body;
   };
 
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${settings.apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://github.com/notingemius/kiro-ai',
-      'X-Title': 'Kiro AI Reply Helper',
-    },
-    body: JSON.stringify(body),
-  });
+  const doFetch = (body) =>
+    fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${settings.apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://github.com/notingemius/kiro-ai',
+        'X-Title': 'Kiro AI Reply Helper',
+      },
+      body: JSON.stringify(body),
+    });
+
+  let res = await doFetch(buildBody(null));
+  if (!res.ok && res.status === 400) {
+    const errText = await res.clone().text().catch(() => '');
+    if (/Reasoning is mandatory/i.test(errText)) {
+      res = await doFetch(buildBody({ enabled: true, effort: 'low' }));
+    }
+  }
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
