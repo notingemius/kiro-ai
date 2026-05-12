@@ -65,3 +65,48 @@ button.ghost { background: transparent; color: var(--muted); font-size: 12px; }
 
 footer { margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1.55; }
 footer b { color: var(--text); }
+
+/* ---------- bench page ---------- */
+.button-link {
+  text-decoration: none; display: inline-block; line-height: 1.2;
+  background: #232744; color: var(--text); border: 1px solid var(--border);
+  padding: 8px 14px; border-radius: 8px; font-size: 13px;
+}
+.button-link:hover { background: #2c315a; }
+
+.bench-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  margin-top: 8px;
+}
+.bench-table th, .bench-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 8px 10px; vertical-align: middle;
+}
+.bench-table th {
+  text-align: left; color: var(--muted); font-weight: 600;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+}
+.bench-table td.num, .bench-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.bench-table tr.winner { background: rgba(124, 92, 255, 0.08); }
+.bench-table tr.winner td { border-bottom-color: var(--accent1); }
+.bench-table .m-name { font-weight: 600; color: var(--text); }
+.bench-table .m-slug { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
+.bench-table .m-kind {
+  display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px;
+  margin-top: 3px; font-weight: 600; letter-spacing: 0.4px;
+}
+.bench-table .m-kind.fast { background: rgba(124, 217, 146, 0.15); color: #7cd992; }
+.bench-table .m-kind.reasoning { background: rgba(255, 138, 61, 0.15); color: #ff8a3d; }
+.bench-table button.pick {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--accent2); font-size: 12px; padding: 4px 10px;
+}
+.bench-table button.pick:hover { background: #1a1f38; }
+
+.bench-log {
+  background: #0b0e1c; border: 1px solid var(--border); color: #b9bed3;
+  padding: 12px; border-radius: 8px; font-family: ui-monospace, monospace;
+  font-size: 12px; line-height: 1.5; max-height: 280px; overflow: auto;
+  white-space: pre-wrap; margin: 0;
+}
+

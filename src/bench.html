@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Kiro AI — бенчмарк моделей</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <h1>Бенчмарк моделей</h1>
+      <p class="sub">Прогоняет твой ключ по всем моделям и замеряет реальное время ответа.</p>
+    </header>
+
+    <section class="card">
+      <h2>Настройки теста</h2>
+      <label>
+        <span>Тестовое сообщение <small>(на нём будут прогоняться все модели)</small></span>
+        <textarea id="testPrompt" rows="3">Расскажи мне про свой день. Что случилось интересного, о чём думаешь сейчас?</textarea>
+      </label>
+      <label>
+        <span>Количество прогонов на модель <small>(больше = точнее, но дольше)</small></span>
+        <input id="runsPerModel" type="number" min="1" max="5" step="1" value="2">
+      </label>
+      <label>
+        <span>Таймаут на один запрос <small>(секунд)</small></span>
+        <input id="timeout" type="number" min="5" max="120" step="1" value="30">
+      </label>
+
+      <div class="actions" style="margin-top:14px">
+        <button id="runBench" type="button" class="primary">Запустить тест</button>
+        <button id="stopBench" type="button" disabled>Остановить</button>
+        <a class="button-link" href="options.html">← Настройки</a>
+        <span id="status" class="status"></span>
+      </div>
+      <p id="keyWarning" class="hint" style="color:#ff8aa3" hidden>
+        Ключ не задан! Открой <a href="options.html">настройки</a> и вставь API-ключ.
+      </p>
+    </section>
+
+    <section class="card" id="resultsCard" hidden>
+      <h2>Результаты</h2>
+      <p class="hint" id="resultsHint"></p>
+      <table class="bench-table" id="resultsTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Модель</th>
+            <th class="num">Среднее</th>
+            <th class="num">Мин</th>
+            <th class="num">Макс</th>
+            <th class="num">Успех</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="actions" style="margin-top:14px">
+        <button id="applyFastest" type="button" class="primary" disabled>Поставить самую быструю как дефолт</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Живой лог</h2>
+      <pre id="log" class="bench-log"></pre>
+    </section>
+  </main>
+  <script src="bench.js"></script>
+</body>
+</html>
